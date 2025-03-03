@@ -1,6 +1,6 @@
 import streamlit as st
 import torch
-from diffusers import FluxControlNetInpaintingPipeline, FluxControlNetModel
+from diffusers import Flux1InpaintPipeline, ControlNetModel  # Adjusted class names
 from diffusers.utils import load_image
 from PIL import Image
 import numpy as np
@@ -12,11 +12,12 @@ device = "cpu"
 # Load models (use float32 for CPU compatibility)
 @st.cache_resource
 def load_pipeline():
-    controlnet = FluxControlNetModel.from_pretrained(
+    controlnet = ControlNetModel.from_pretrained(
         "alimama-creative/FLUX.1-dev-Controlnet-Inpainting-Beta",
         torch_dtype=torch.float32
     ).to(device)
-    pipe = FluxControlNetInpaintingPipeline.from_pretrained(
+    # Use a generic inpainting pipeline if FluxControlNetInpaintingPipeline isn’t available
+    pipe = Flux1InpaintPipeline.from_pretrained(
         "black-forest-labs/FLUX.1-dev",
         controlnet=controlnet,
         torch_dtype=torch.float32
@@ -38,12 +39,12 @@ prompt = st.text_input("Enter a prompt", "a futuristic cityscape")
 if uploaded_image and uploaded_mask and prompt:
     try:
         # Load and process the image and mask
-        input_image = Image.open(uploaded_image).convert("RGB").resize((512, 512))  # Resize for memory efficiency
-        mask_image = Image.open(uploaded_mask).convert("L").resize((512, 512))  # Convert to grayscale
+        input_image = Image.open(uploaded_image).convert("RGB").resize((512, 512))
+        mask_image = Image.open(uploaded_mask).convert("L").resize((512, 512))
 
         # Convert mask to binary (white = 255, black = 0)
         mask_array = np.array(mask_image)
-        mask_array = (mask_array > 128).astype(np.uint8) * 255  # Threshold to binary
+        mask_array = (mask_array > 128).astype(np.uint8) * 255
         mask_image = Image.fromarray(mask_array)
 
         # Display inputs
@@ -54,11 +55,12 @@ if uploaded_image and uploaded_mask and prompt:
         with st.spinner("Generating image... (this may take a few minutes on CPU)"):
             output_image = pipe(
                 prompt=prompt,
-                control_image=input_image,
-                control_mask=mask_image,
+                image=input_image,  # Base image
+                mask_image=mask_image,  # Mask for inpainting
+                control_image=input_image,  # ControlNet uses the original image as guidance
                 height=512,
                 width=512,
-                num_inference_steps=20,  # Reduced for speed
+                num_inference_steps=20,
                 guidance_scale=3.5,
                 controlnet_conditioning_scale=1.0
             ).images[0]
