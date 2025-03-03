@@ -1,6 +1,6 @@
 streamlit
 torch
-diffusers>=0.30.0  # Use a recent version known to support FLUX.1
+git+https://github.com/huggingface/diffusers.git@main
 transformers
 accelerate
 pillow
