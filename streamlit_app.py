@@ -1,6 +1,6 @@
 import streamlit as st
 import torch
-from diffusers import Flux1InpaintPipeline, ControlNetModel  # Adjusted class names
+from diffusers import FluxControlNetInpaintingPipeline, ControlNetModel  # Adjusted imports
 from diffusers.utils import load_image
 from PIL import Image
 import numpy as np
@@ -16,8 +16,7 @@ def load_pipeline():
         "alimama-creative/FLUX.1-dev-Controlnet-Inpainting-Beta",
         torch_dtype=torch.float32
     ).to(device)
-    # Use a generic inpainting pipeline if FluxControlNetInpaintingPipeline isn’t available
-    pipe = Flux1InpaintPipeline.from_pretrained(
+    pipe = FluxControlNetInpaintingPipeline.from_pretrained(
         "black-forest-labs/FLUX.1-dev",
         controlnet=controlnet,
         torch_dtype=torch.float32
@@ -55,9 +54,9 @@ if uploaded_image and uploaded_mask and prompt:
         with st.spinner("Generating image... (this may take a few minutes on CPU)"):
             output_image = pipe(
                 prompt=prompt,
-                image=input_image,  # Base image
-                mask_image=mask_image,  # Mask for inpainting
-                control_image=input_image,  # ControlNet uses the original image as guidance
+                image=input_image,
+                mask_image=mask_image,
+                control_image=input_image,  # Using input image as control for inpainting
                 height=512,
                 width=512,
                 num_inference_steps=20,
